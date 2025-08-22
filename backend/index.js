@@ -11,7 +11,7 @@ app.use(cors({ origin: "*" }));
 
 // signup
 
-app.use("/api", require("./Routes/mainRoutes"));
+app.use("/api", require("./routes/user.routes"));
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
