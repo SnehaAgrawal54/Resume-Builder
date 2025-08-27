@@ -11,7 +11,7 @@ mongoose
   });
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, minlength: 3, maxlength: 30 },
+  username: { type: String, required: true, minlength:[3, "minimum 3 characters required"], maxlength: 30 },
   email: {
     type: String,
     required: [true, "Email is required"],
@@ -33,6 +33,9 @@ const userSchema = new mongoose.Schema({
       ref: "UserDetails",
     },
   ],
+  otp:{
+    type: String
+  }
 });
 
 module.exports = mongoose.model("User", userSchema);
