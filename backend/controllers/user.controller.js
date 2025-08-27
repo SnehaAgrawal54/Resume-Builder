@@ -1,4 +1,3 @@
-const { use } = require("react");
 const UserModel = require("../models/signupModel");
 const UserDetailsModel = require("../models/userDetailsModel");
 const bcrypt = require("bcrypt");
@@ -136,4 +135,106 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, otpGenerator, verifyOtp };
+// get all details of user
+const getUserDetails = async (req, res) => {
+  try {
+    const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
+    const user = await UserModel.findOne({email}).populate('userDetails').select('-password');
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// post some details of user in personal details
+const addPersonalDetails = async (req, res) => {
+  try {
+    const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
+    const { firstName, lastName, phoneNo, country, pincode, linkedIn, github, portfolio } = req.body;
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const newDetails = new UserDetailsModel({
+      firstName,
+      lastName,
+      email,
+      phoneNo,
+      country,
+      stateOrUnionTerritory,
+      city,
+      distinct,
+      languagesKnown,
+      hobies,
+      linkedIn,
+      github,
+      website,
+      jobTitle,
+      user: user._id,
+    });
+    await newDetails.save();
+    user.userDetails.push(newDetails._id);
+    await user.save();
+    res.status(200).json({ message: "User details added successfully", newDetails });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// update personal details
+const updatePersonalDetails = async (req, res) => {
+  try {
+    const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
+    const {
+      firstName,
+      lastName,
+      phoneNo,
+      country,
+      stateOrUnionTerritory,
+      city,
+      distinct,
+      languagesKnown,
+      hobies,
+      linkedIn,
+      github,
+      website,
+      jobTitle,
+    } = req.body;
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const userDetailsId = user.userDetails[0]; // Assuming one-to-one relationship for simplicity
+    if (!userDetailsId) {
+      return res.status(404).json({ message: "User details not found" });
+    }
+    const updatedDetails = await UserDetailsModel.findByIdAndUpdate(
+      userDetailsId,
+      {
+        firstName,
+        lastName,
+        phoneNo,
+        country,
+        stateOrUnionTerritory,
+        city,
+        distinct,
+        languagesKnown,
+        hobies,
+        linkedIn,
+        github,
+        website,
+        jobTitle,
+      },
+      { new: true }
+    );
+    res.status(200).json({ message: "User details updated successfully", updatedDetails });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails };
