@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 
 const userDetailsSchema = new mongoose.Schema({
+  resume: { type: Object, required: false },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -16,6 +17,12 @@ const userDetailsSchema = new mongoose.Schema({
   website: { type: String, required: false },
   languagesKnown: { type: String, required: false },
   hobies: { type: String, required: false },
+  education: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Education",
+    },
+  ],
   user: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 });
 

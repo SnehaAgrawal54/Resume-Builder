@@ -9,8 +9,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cors({ origin: "*" }));
 
-// signup
-
 app.use("/api", require("./routes/user.routes"));
 
 app.listen(PORT, () => {
