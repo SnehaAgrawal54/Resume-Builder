@@ -28,15 +28,17 @@ const otpGenerator = async (req, res) => {
       subject: "Email Verification OTP",
       text: `Your OTP for email verification is: ${otp}`,
     };
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, async (error, info) => {
       if (error) {
         return res.status(500).json({ message: "Error sending email", error });
       } else {
         // otp needs to be hashed and stored in DB with expiry in production
-        const hashedOtp = bcrypt.hash(otp.toString(), saltRounds, expiresIn='10m');
+        const hashedOtp = await bcrypt.hash(otp.toString(), saltRounds);
         const newOtpEntry = new dbConfigModel({
           email,
           otp: hashedOtp,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 10 * 60 * 1000, //
         });
         newOtpEntry.save();
         return res
@@ -54,6 +56,10 @@ const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
   try {
     const otpEntry = await dbConfigModel.findOne({ email });
+    if (otpEntry.expiresAt < new Date()) {
+      await dbConfigModel.deleteOne({ email });
+      return res.status(400).json({ message: "OTP expired" });
+    }
     if (!otpEntry) {
       return res.status(400).json({ message: "OTP expired. Please request a new one."});
     }
@@ -154,7 +160,7 @@ const addPersonalDetails = async (req, res) => {
   try {
     const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
     const { firstName, lastName, phoneNo, country, stateOrUnionTerritory, city, distinct, languagesKnown, hobies, linkedIn, github, website, jobTitle } = req.body;
-    const resume = `/uploads/${req.file.filename}`; // Placeholder path, in real scenario handle file upload
+    const resume =req.file? `/uploads/${req.file.filename}` : null ; // Placeholder path, in real scenario handle file upload
     const user = await UserModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -205,7 +211,6 @@ const updatePersonalDetails = async (req, res) => {
       website,
       jobTitle,
     } = req.body;
-    const resume = `/uploads/${req.file.filename}`; // Placeholder path, in real scenario handle file upload
     const user = await UserModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -214,26 +219,32 @@ const updatePersonalDetails = async (req, res) => {
     if (!userDetailsId) {
       return res.status(404).json({ message: "User details not found" });
     }
+    const updateData = {
+      firstName,
+      lastName,
+      phoneNo,
+      country,
+      stateOrUnionTerritory,
+      city,
+      distinct,
+      languagesKnown,
+      hobies,
+      linkedIn,
+      github,
+      website,
+      jobTitle,
+    };
+    if (req.file) {
+      updateData.resume = `/uploads/${req.file.filename}`;
+    }
     const updatedDetails = await UserDetailsModel.findByIdAndUpdate(
       userDetailsId,
-      {
-        resume,
-        firstName,
-        lastName,
-        phoneNo,
-        country,
-        stateOrUnionTerritory,
-        city,
-        distinct,
-        languagesKnown,
-        hobies,
-        linkedIn,
-        github,
-        website,
-        jobTitle,
-      },
+      updateData,
       { new: true }
     );
+    if (!updatedDetails) {
+      return res.status(404).json({ message: "User details not found" });
+    }
     res.status(200).json({ message: "User details updated successfully", updatedDetails });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -262,7 +273,7 @@ const addEducationDetails = async (req, res) => {
       discription,
       user: user._id,
     });
-    await user.push(education._id);
+    await user.education.push(education._id);
     await education.save();
     await user.save();
     res.status(200).json({ message: "Education details added successfully", education });
@@ -277,7 +288,7 @@ const updateEducationDetails = async (req, res) => {
   try{
     const educationId = req.params.id;
     const { institutionName, degree, fieldOfStudy, startDate, endDate, location, grade, acheavements, discription } = req.body;
-    const education = await UserModel.findById(educationId); // Assuming one-to-one relationship for simplicity
+    const education = await EducationModel.findById(educationId); // Assuming one-to-one relationship for simplicity
     if (!education) {
       return res.status(404).json({ message: "Education details not found" });
     }

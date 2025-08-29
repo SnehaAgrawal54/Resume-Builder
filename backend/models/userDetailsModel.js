@@ -23,7 +23,7 @@ const userDetailsSchema = new mongoose.Schema({
       ref: "Education",
     },
   ],
-  user: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 });
 
 module.exports = mongoose.model("UserDetails", userDetailsSchema);

@@ -27,12 +27,11 @@ const userSchema = new mongoose.Schema({
       "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
     ],
   },
-  userDetails: [
+  userDetails: 
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "UserDetails",
     },
-  ]
 });
 
 module.exports = mongoose.model("User", userSchema);
