@@ -17,13 +17,43 @@ const userDetailsSchema = new mongoose.Schema({
   website: { type: String, required: false },
   languagesKnown: { type: String, required: false },
   hobies: { type: String, required: false },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  summary: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Summary",
+    },
+  ],
   education: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Education",
     },
   ],
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  experience: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Experience",
+    },
+  ],
+  projects: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+    },
+  ],
+  skills: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Skill",
+    },
+  ],
+  certifications: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Certification",
+    },
+  ],
 });
 
 module.exports = mongoose.model("UserDetails", userDetailsSchema);

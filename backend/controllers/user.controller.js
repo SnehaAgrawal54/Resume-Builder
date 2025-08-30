@@ -313,4 +313,37 @@ const updateEducationDetails = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails };
+// contact us node mailer added here
+const contactUs = async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    const transporter = nodeMailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.CONTACT_US_EMAIL,
+      subject: `Contact Us Message from ${name} with email ${email}`,
+      text: message,
+    };
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return res.status(500).json({ message: "Error sending email", error });
+      } else {
+        return res
+          .status(200)
+          .json({ message: "Message sent successfully" });
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+// eperience, skills, summary controllers to be added similarly
+
+module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs };

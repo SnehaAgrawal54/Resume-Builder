@@ -1,7 +1,7 @@
 const express = require("express");
-const { signup, login, otpGenerator, verifyOtp, getUserDetails,  addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails } = require("../controllers/user.controller");
+const { signup, login, otpGenerator, verifyOtp, getUserDetails,  addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs } = require("../controllers/user.controller");
 const router = express.Router();
-const upload = require("../multerStorage");
+const upload = require("../uploadedResume");
 
 router.post("/signup", signup);
 
@@ -20,5 +20,7 @@ router.put("/update-personal-details/:email", upload.single("resume"), updatePer
 router.post("/education-details/:email", addEducationDetails);
 
 router.put("/update-education-details/:id", updateEducationDetails);
+
+router.post("/contact-us", contactUs);
 
 module.exports = router;
