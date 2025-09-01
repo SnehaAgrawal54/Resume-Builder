@@ -7,6 +7,7 @@ require("dotenv").config();
 const nodeMailer = require("nodemailer");
 const dbConfigModel = require("../config/db.config");
 const EducationModel = require("../models/education");
+const ExperienceModel = require("../models/experience");
 
 
 // OTP generation and email sending
@@ -160,7 +161,7 @@ const addPersonalDetails = async (req, res) => {
   try {
     const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
     const { firstName, lastName, phoneNo, country, stateOrUnionTerritory, city, distinct, languagesKnown, hobies, linkedIn, github, website, jobTitle } = req.body;
-    const resume =req.file? `/uploads/${req.file.filename}` : null ; // Placeholder path, in real scenario handle file upload
+    const resume =req.file? `/uploads/resume/${req.file.filename}` : null ; // Placeholder path, in real scenario handle file upload
     const user = await UserModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -235,7 +236,7 @@ const updatePersonalDetails = async (req, res) => {
       jobTitle,
     };
     if (req.file) {
-      updateData.resume = `/uploads/${req.file.filename}`;
+      updateData.resume = `/uploads/resume/${req.file.filename}`;
     }
     const updatedDetails = await UserDetailsModel.findByIdAndUpdate(
       userDetailsId,
@@ -345,5 +346,68 @@ const contactUs = async (req, res) => {
 }
 
 // eperience, skills, summary controllers to be added similarly
+const addexperience = async (req, res) => {
+  try {
+    const {jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements} = req.body;
+    const email = req.params.email;
+    const certificates = req.file? `/uploads/certificate/${req.file.filename}` : null ;
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+      }
+    const experience = new ExperienceModel({
+      jobTitle,
+      companyName,
+      employeeType,
+      location,
+      startDate,
+      endDate,
+      workSamples,
+      discription,
+      keyAchievements,
+      certificates,
+      user: user._id,
+    });
+    await user.experience.push(experience._id);
+    await experience.save();
+    await user.save();
+    res.status(200).json({ message: "Experience details added successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
-module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs };
+// update education details
+const updateExperienceDetails = async (req, res) => {
+  try{
+    const experienceId = req.params.id;
+    const { jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements } = req.body;
+    const experience = await ExperienceModel.findById(experienceId);
+    if (!experience) {
+      return res.status(404).json({ message: "Experience details not found" });
+    }
+    const updateData = {
+        jobTitle,
+        companyName,
+        employeeType,
+        location,
+        startDate,
+        endDate,
+        workSamples,
+        discription,
+        keyAchievements,
+      };
+    if (req.file) {
+      updateData.certificates = `/uploads/certificate/${req.file.filename}`;
+    }
+    const updatedExperience = await ExperienceModel.findByIdAndUpdate(experienceId,
+      updateData,
+      { new: true }
+    );
+    res.status(200).json({ message: "Experience details updated successfully", experience:updatedExperience });
+  }catch(error){
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addexperience, updateExperienceDetails };

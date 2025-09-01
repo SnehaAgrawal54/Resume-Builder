@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const experienceSchema = new mongoose.Schema({
     jobTitle: { type: String, required: true },
     companyName: { type: String, required: true },
+    employeeType: { type: String, required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     companyLocation: { type: String, required: true },
