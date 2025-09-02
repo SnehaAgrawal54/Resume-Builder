@@ -8,6 +8,10 @@ const nodeMailer = require("nodemailer");
 const dbConfigModel = require("../config/db.config");
 const EducationModel = require("../models/education");
 const ExperienceModel = require("../models/experience");
+const SkillModel = require("../models/skills");
+const CertificationModel = require("../models/certifications");
+const ProjectModel = require("../models/projects");
+const SummaryModel = require("../models/summary");
 
 
 // OTP generation and email sending
@@ -346,7 +350,7 @@ const contactUs = async (req, res) => {
 }
 
 // eperience, skills, summary controllers to be added similarly
-const addexperience = async (req, res) => {
+const addExperienceDetails = async (req, res) => {
   try {
     const {jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements} = req.body;
     const email = req.params.email;
@@ -410,4 +414,185 @@ const updateExperienceDetails = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addexperience, updateExperienceDetails };
+// add skills
+const addSkills = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { skillName, proficiency, skillCategory } = req.body; // Expecting an array of skills
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const skills = new SkillModel({
+      skillName,
+      proficiency,
+      skillCategory,
+      user: user._id,
+    });
+    await user.skills.push(skills._id);
+    await skills.save();
+    await user.save();
+    res.status(200).json({ message: "Skills added successfully", skills });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// update skills
+const updateSkills = async (req, res) => {
+  try {
+    const skillId = req.params.id;
+    const { skillName, proficiency, skillCategory } = req.body;
+    const skill = await SkillModel.findById(skillId);
+    if (!skill) {
+      return res.status(404).json({ message: "Skill not found" });
+    } 
+    const updatedSkill = await SkillModel.findByIdAndUpdate(
+      skillId,
+      { skillName, proficiency, skillCategory },
+      { new: true }
+    );
+    res.status(200).json({ message: "Skill updated successfully", skill: updatedSkill });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// add certifications
+const addCertifications = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { certificationName, issuingOrganization, issueDate, expirationDate, credentialID, credentialURL } = req.body; // Expecting an array of certifications
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const certifications = new CertificationModel({
+      certificationName,
+      issuingOrganization,
+      issueDate,
+      expirationDate,
+      credentialID,
+      credentialURL,
+      user: user._id,
+    });
+    await user.certifications.push(certifications._id);
+    await certifications.save();
+    await user.save();
+    res.status(200).json({ message: "Certifications added successfully", certifications });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// update certifications
+const updateCertifications = async (req, res) => {
+  try {
+    const certificationId = req.params.id;
+    const { certificationName, issuingOrganization, issueDate, expirationDate, credentialID, credentialURL } = req.body;
+    const certification = await CertificationModel.findById(certificationId);
+    if (!certification) {
+      return res.status(404).json({ message: "Certification not found" });
+    }
+    const updatedCertification = await CertificationModel.findByIdAndUpdate(
+      certificationId,
+      { certificationName, issuingOrganization, issueDate, expirationDate, credentialID, credentialURL },
+      { new: true }
+    );
+    res.status(200).json({ message: "Certification updated successfully", certification: updatedCertification });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// add projects
+const addProjects = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { projectName, role, startDate, endDate, projectURL, projectDescription, technologiesUsed } = req.body; // Expecting an array of projects
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const projects = new ProjectModel({
+      projectName,
+      role,
+      startDate,
+      endDate,
+      projectURL,
+      projectDescription,
+      technologiesUsed,
+      user: user._id,
+    });
+    await user.projects.push(projects._id);
+    await projects.save();
+    await user.save();
+    res.status(200).json({ message: "Projects added successfully", projects });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// update projects
+const updateProjects = async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const { projectName, role, startDate, endDate, projectURL, projectDescription, technologiesUsed } = req.body;
+    const project = await ProjectModel.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+    const updatedProject = await ProjectModel.findByIdAndUpdate(
+      projectId,
+      { projectName, role, startDate, endDate, projectURL, projectDescription, technologiesUsed },
+      { new: true }
+    );
+    res.status(200).json({ message: "Project updated successfully", project: updatedProject });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// add summary
+const addSummary = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const { summaryText } = req.body;
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const summary = new SummaryModel({
+      summaryText,
+      user: user._id,
+    });
+    await user.summary.push(summary._id);
+    await summary.save();
+    await user.save();
+    res.status(200).json({ message: "Summary added successfully", summary });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// update summary
+const updateSummary = async (req, res) => {
+  try {
+    const summaryId = req.params.id;
+    const { summaryText } = req.body;
+    const summary = await SummaryModel.findById(summaryId);
+    if (!summary) {
+      return res.status(404).json({ message: "Summary not found" });
+    }
+    const updatedSummary = await SummaryModel.findByIdAndUpdate(
+      summaryId,
+      { summaryText },
+      { new: true }
+    );
+    res.status(200).json({ message: "Summary updated successfully", summary: updatedSummary });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addExperienceDetails, updateExperienceDetails, addSkills, updateSkills, addCertifications, updateCertifications, addProjects, updateProjects, addSummary, updateSummary };
