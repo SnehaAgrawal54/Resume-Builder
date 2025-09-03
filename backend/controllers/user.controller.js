@@ -188,8 +188,8 @@ const addPersonalDetails = async (req, res) => {
       jobTitle,
       user: user._id,
     });
-    await newDetails.save();
     user.userDetails.push(newDetails._id);
+    await newDetails.save();
     await user.save();
     res.status(200).json({ message: "User details added successfully", newDetails });
   } catch (error) {
@@ -256,13 +256,36 @@ const updatePersonalDetails = async (req, res) => {
   }
 };
 
+// delete personal details
+const deletePersonalDetails = async (req, res) => {
+  try {
+    const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const userDetailsId = user.userDetails[0]; // Assuming one-to-one relationship for simplicity
+    if (!userDetailsId) {
+      return res.status(404).json({ message: "User details not found" });
+    }
+    await UserDetailsModel.findByIdAndDelete(userDetailsId);
+    user.userDetails = user.userDetails.filter(
+      (detailId) => detailId.toString() !== userDetailsId.toString()
+    );
+    await user.save();
+    res.status(200).json({ message: "User details deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // post education details
 const addEducationDetails = async (req, res) => {
   // To be implemented
   try{
     const email = req.params.email;
     const { institutionName, degree, fieldOfStudy, startDate, endDate, location, grade, acheavements, discription } = req.body;
-    const user = await UserModel.findOne({email});
+    const user = await UserDetailsModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -278,7 +301,7 @@ const addEducationDetails = async (req, res) => {
       discription,
       user: user._id,
     });
-    await user.education.push(education._id);
+    user.education.push(education._id);
     await education.save();
     await user.save();
     res.status(200).json({ message: "Education details added successfully", education });
@@ -293,7 +316,8 @@ const updateEducationDetails = async (req, res) => {
   try{
     const educationId = req.params.id;
     const { institutionName, degree, fieldOfStudy, startDate, endDate, location, grade, acheavements, discription } = req.body;
-    const education = await EducationModel.findById(educationId); // Assuming one-to-one relationship for simplicity
+    console.log("Education ID:", educationId);
+    const education = await EducationModel.findById(educationId);
     if (!education) {
       return res.status(404).json({ message: "Education details not found" });
     }
@@ -314,6 +338,29 @@ const updateEducationDetails = async (req, res) => {
     );
     res.status(200).json({ message: "Education details updated successfully", education:updatedEducation });
   }catch(error){
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// delete education details
+const deleteEducationDetails = async (req, res) => {
+  try {
+    const educationId = req.params.id;
+    const education = await EducationModel.findById(educationId);
+    if (!education) {
+      return res.status(404).json({ message: "Education details not found" });
+    }
+    const userId = education.user;
+    await EducationModel.findByIdAndDelete(educationId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.education = user.education.filter(
+        (eduId) => eduId.toString() !== educationId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Education details deleted successfully" });
+  } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -352,10 +399,10 @@ const contactUs = async (req, res) => {
 // eperience, skills, summary controllers to be added similarly
 const addExperienceDetails = async (req, res) => {
   try {
-    const {jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements} = req.body;
+    const {companyLocation, jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements} = req.body;
     const email = req.params.email;
     const certificates = req.file? `/uploads/certificate/${req.file.filename}` : null ;
-    const user = await UserModel.findOne({email});
+    const user = await UserDetailsModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
       }
@@ -368,14 +415,15 @@ const addExperienceDetails = async (req, res) => {
       endDate,
       workSamples,
       discription,
+      companyLocation,
       keyAchievements,
       certificates,
       user: user._id,
     });
-    await user.experience.push(experience._id);
+    user.experience.push(experience._id);
     await experience.save();
     await user.save();
-    res.status(200).json({ message: "Experience details added successfully" });
+    res.status(200).json({ message: "Experience details added successfully", experience });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -385,7 +433,7 @@ const addExperienceDetails = async (req, res) => {
 const updateExperienceDetails = async (req, res) => {
   try{
     const experienceId = req.params.id;
-    const { jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements } = req.body;
+    const {companyLocation, jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements } = req.body;
     const experience = await ExperienceModel.findById(experienceId);
     if (!experience) {
       return res.status(404).json({ message: "Experience details not found" });
@@ -393,6 +441,7 @@ const updateExperienceDetails = async (req, res) => {
     const updateData = {
         jobTitle,
         companyName,
+        companyLocation,
         employeeType,
         location,
         startDate,
@@ -414,12 +463,35 @@ const updateExperienceDetails = async (req, res) => {
   }
 };
 
+// delete experience details
+const deleteExperienceDetails = async (req, res) => {
+  try {
+    const experienceId = req.params.id;
+    const experience = await ExperienceModel.findById(experienceId);
+    if (!experience) {
+      return res.status(404).json({ message: "Experience details not found" });
+    }
+    const userId = experience.user;
+    await ExperienceModel.findByIdAndDelete(experienceId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.experience = user.experience.filter(
+        (expId) => expId.toString() !== experienceId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Experience details deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // add skills
 const addSkills = async (req, res) => {
   try {
     const email = req.params.email;
     const { skillName, proficiency, skillCategory } = req.body; // Expecting an array of skills
-    const user = await UserModel.findOne({email});
+    const user = await UserDetailsModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -429,7 +501,7 @@ const addSkills = async (req, res) => {
       skillCategory,
       user: user._id,
     });
-    await user.skills.push(skills._id);
+    user.skills.push(skills._id);
     await skills.save();
     await user.save();
     res.status(200).json({ message: "Skills added successfully", skills });
@@ -458,25 +530,55 @@ const updateSkills = async (req, res) => {
   }
 };
 
+// delete skills
+const deleteSkills = async (req, res) => {
+  try {
+    const skillId = req.params.id;
+    const skill = await SkillModel.findById(skillId);
+    if (!skill) {
+      return res.status(404).json({ message: "Skill not found" });
+    }
+    const userId = skill.user;
+    await SkillModel.findByIdAndDelete(skillId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.skills = user.skills.filter(
+        (sId) => sId.toString() !== skillId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Skill deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // add certifications
 const addCertifications = async (req, res) => {
   try {
     const email = req.params.email;
-    const { certificationName, issuingOrganization, issueDate, expirationDate, credentialID, credentialURL } = req.body; // Expecting an array of certifications
-    const user = await UserModel.findOne({email});
+    const {
+      CertificationName,
+      IssuingOrganization,
+      startDate,
+      endDate,
+      description,
+      CredentialURL,
+    } = req.body; // Expecting an array of certifications
+    const user = await UserDetailsModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     const certifications = new CertificationModel({
-      certificationName,
-      issuingOrganization,
-      issueDate,
-      expirationDate,
-      credentialID,
-      credentialURL,
+      CertificationName,
+      IssuingOrganization,
+      startDate,
+      endDate,
+      description,
+      CredentialURL,
       user: user._id,
     });
-    await user.certifications.push(certifications._id);
+    user.certifications.push(certifications._id);
     await certifications.save();
     await user.save();
     res.status(200).json({ message: "Certifications added successfully", certifications });
@@ -489,17 +591,54 @@ const addCertifications = async (req, res) => {
 const updateCertifications = async (req, res) => {
   try {
     const certificationId = req.params.id;
-    const { certificationName, issuingOrganization, issueDate, expirationDate, credentialID, credentialURL } = req.body;
+    const {
+      CertificationName,
+      IssuingOrganization,
+      startDate,
+      endDate,
+      description,
+      CredentialURL,
+    } = req.body;
     const certification = await CertificationModel.findById(certificationId);
     if (!certification) {
       return res.status(404).json({ message: "Certification not found" });
     }
     const updatedCertification = await CertificationModel.findByIdAndUpdate(
       certificationId,
-      { certificationName, issuingOrganization, issueDate, expirationDate, credentialID, credentialURL },
+      {
+        CertificationName,
+        IssuingOrganization,
+        startDate,
+        endDate,
+        description,
+        CredentialURL,
+      },
       { new: true }
     );
     res.status(200).json({ message: "Certification updated successfully", certification: updatedCertification });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// delete certifications
+const deleteCertifications = async (req, res) => {
+  try {
+    const certificationId = req.params.id;
+    const certification = await CertificationModel.findById(certificationId);
+    if (!certification) {
+      return res.status(404).json({ message: "Certification not found" });
+    }
+    const userId = certification.user;
+    await CertificationModel.findByIdAndDelete(certificationId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.certifications = user.certifications.filter(
+        (cId) => cId.toString() !== certificationId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Certification deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -509,22 +648,32 @@ const updateCertifications = async (req, res) => {
 const addProjects = async (req, res) => {
   try {
     const email = req.params.email;
-    const { projectName, role, startDate, endDate, projectURL, projectDescription, technologiesUsed } = req.body; // Expecting an array of projects
-    const user = await UserModel.findOne({email});
+    const {
+      projectTitle,
+      organization,
+      position,
+      projectLink,
+      startDate,
+      endDate,
+      projectDiscription,
+      technologies,
+    } = req.body; // Expecting an array of projects
+    const user = await UserDetailsModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     const projects = new ProjectModel({
-      projectName,
-      role,
-      startDate,
-      endDate,
-      projectURL,
-      projectDescription,
-      technologiesUsed,
-      user: user._id,
+    projectTitle,
+    organization,
+    position,
+    projectLink,
+    startDate,
+    endDate,
+    projectDiscription,
+    technologies,
+    user: user._id,
     });
-    await user.projects.push(projects._id);
+    user.projects.push(projects._id);
     await projects.save();
     await user.save();
     res.status(200).json({ message: "Projects added successfully", projects });
@@ -537,17 +686,58 @@ const addProjects = async (req, res) => {
 const updateProjects = async (req, res) => {
   try {
     const projectId = req.params.id;
-    const { projectName, role, startDate, endDate, projectURL, projectDescription, technologiesUsed } = req.body;
+    const {
+      projectTitle,
+      organization,
+      position,
+      projectLink,
+      startDate,
+      endDate,
+      projectDiscription,
+      technologies,
+    } = req.body;
     const project = await ProjectModel.findById(projectId);
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
     const updatedProject = await ProjectModel.findByIdAndUpdate(
       projectId,
-      { projectName, role, startDate, endDate, projectURL, projectDescription, technologiesUsed },
+      {
+        projectTitle,
+        organization,
+        position,
+        projectLink,
+        startDate,
+        endDate,
+        projectDiscription,
+        technologies,
+      },
       { new: true }
     );
     res.status(200).json({ message: "Project updated successfully", project: updatedProject });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// delete projects
+const deleteProjects = async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const project = await ProjectModel.findById(projectId);
+    if (!project) { 
+      return res.status(404).json({ message: "Project not found" });
+    }
+    const userId = project.user;
+    await ProjectModel.findByIdAndDelete(projectId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.projects = user.projects.filter( 
+        (pId) => pId.toString() !== projectId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Project deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -557,16 +747,16 @@ const updateProjects = async (req, res) => {
 const addSummary = async (req, res) => {
   try {
     const email = req.params.email;
-    const { summaryText } = req.body;
-    const user = await UserModel.findOne({email});
+    const { summaryObjective } = req.body;
+    const user = await UserDetailsModel.findOne({email});
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     const summary = new SummaryModel({
-      summaryText,
+      summaryObjective,
       user: user._id,
     });
-    await user.summary.push(summary._id);
+    user.summary.push(summary._id);
     await summary.save();
     await user.save();
     res.status(200).json({ message: "Summary added successfully", summary });
@@ -579,14 +769,14 @@ const addSummary = async (req, res) => {
 const updateSummary = async (req, res) => {
   try {
     const summaryId = req.params.id;
-    const { summaryText } = req.body;
+    const { summaryObjective } = req.body;
     const summary = await SummaryModel.findById(summaryId);
     if (!summary) {
       return res.status(404).json({ message: "Summary not found" });
     }
     const updatedSummary = await SummaryModel.findByIdAndUpdate(
       summaryId,
-      { summaryText },
+      { summaryObjective },
       { new: true }
     );
     res.status(200).json({ message: "Summary updated successfully", summary: updatedSummary });
@@ -595,4 +785,27 @@ const updateSummary = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addExperienceDetails, updateExperienceDetails, addSkills, updateSkills, addCertifications, updateCertifications, addProjects, updateProjects, addSummary, updateSummary };
+// delete summary
+const deleteSummary = async (req, res) => {
+  try {
+    const summaryId = req.params.id;
+    const summary = await SummaryModel.findById(summaryId);
+    if (!summary) {
+      return res.status(404).json({ message: "Summary not found" });
+    }
+    const userId = summary.user;
+    await SummaryModel.findByIdAndDelete(summaryId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.summary = user.summary.filter(
+        (sId) => sId.toString() !== summaryId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Summary deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addExperienceDetails, updateExperienceDetails, addSkills, updateSkills, addCertifications, updateCertifications, addProjects, updateProjects, addSummary, updateSummary , deletePersonalDetails, deleteEducationDetails, deleteExperienceDetails, deleteSkills, deleteCertifications, deleteProjects, deleteSummary};
