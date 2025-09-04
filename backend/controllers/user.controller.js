@@ -12,6 +12,11 @@ const SkillModel = require("../models/skills");
 const CertificationModel = require("../models/certifications");
 const ProjectModel = require("../models/projects");
 const SummaryModel = require("../models/summary");
+const BlogModel = require("../models/Blog");
+const TemplateModel = require("../models/template");
+const multer = require("multer");
+const path = require("path");
+
 
 
 // OTP generation and email sending
@@ -260,7 +265,7 @@ const updatePersonalDetails = async (req, res) => {
 const deletePersonalDetails = async (req, res) => {
   try {
     const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
-    const user = await UserModel.findOne({email});
+    const user = await UserModel.findOne({ email }).populate("userDetails");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -268,7 +273,27 @@ const deletePersonalDetails = async (req, res) => {
     if (!userDetailsId) {
       return res.status(404).json({ message: "User details not found" });
     }
+    const userDetails = UserDetailsModel.findById(userDetailsId);
+    if (!userDetails) {
+      return res.status(404).json({ message: "User details not found" });
+    }
+
+    // Delete all referenced docs
+    await Promise.all([
+      SummaryModel.deleteMany({ _id: { $in: userDetails.summary } }),
+      EducationModel.deleteMany({ _id: { $in: userDetails.education } }),
+      ExperienceModel.deleteMany({ _id: { $in: userDetails.experience } }),
+      ProjectModel.deleteMany({ _id: { $in: userDetails.projects } }),
+      SkillModel.deleteMany({ _id: { $in: userDetails.skills } }),
+      CertificationModel.deleteMany({
+        _id: { $in: userDetails.certifications },
+      }),
+    ]);
+
+    // delete the userDetails itself
     await UserDetailsModel.findByIdAndDelete(userDetailsId);
+
+    // Remove reference from User model
     user.userDetails = user.userDetails.filter(
       (detailId) => detailId.toString() !== userDetailsId.toString()
     );
@@ -808,4 +833,220 @@ const deleteSummary = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addExperienceDetails, updateExperienceDetails, addSkills, updateSkills, addCertifications, updateCertifications, addProjects, updateProjects, addSummary, updateSummary , deletePersonalDetails, deleteEducationDetails, deleteExperienceDetails, deleteSkills, deleteCertifications, deleteProjects, deleteSummary};
+// add Blogs
+const addBlog = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const user = await UserDetailsModel.findOne({email});
+    if (!user){
+      return res.status(404).json({ message: "User not found" });
+    }
+    const { Title, Keywords, Slug, Description, Content } = req.body;
+    const images = req.file? `/uploads/blog/${req.file.filename}` : null ;
+    const blog = new BlogModel({
+      Title,
+      Keywords,
+      Slug,
+      Description,
+      Content,
+      images,
+      user: user._id,
+    });
+    user.blog.push(blog._id);
+    await blog.save();
+    await user.save();
+    res.status(200).json({ message: "Blog added successfully", blog });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// update Blogs
+const updateBlog = async (req, res) => {
+  try {
+    const blogId = req.params.id;
+    const { Title, Keywords, Slug, Description, Content } = req.body;
+    const images = req.file? `/uploads/blog/${req.file.filename}` : null ;
+    const blog = await BlogModel.findById(blogId);
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+    const updatedBlog = await BlogModel.findByIdAndUpdate(
+      blogId,
+      {
+        Title,
+        Keywords,
+        Slug,
+        Description,
+        Content,
+        images,
+      },
+      { new: true }
+    );
+    res.status(200).json({ message: "Blog updated successfully", blog: updatedBlog });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// delete Blogs
+const deleteBlog = async (req, res) => {
+  try {
+    const blogId = req.params.id;
+    const blog = await BlogModel.findById(blogId);
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+    const userId = blog.user;
+    await BlogModel.findByIdAndDelete(blogId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.blog = user.blog.filter(
+        (bId) => bId.toString() !== blogId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Blog deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// add Templates
+const addTemplate = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const user = await UserDetailsModel.findOne({email});
+    if (!user){
+      return res.status(404).json({ message: "User not found" });
+    }
+    const { 
+    TemplateName,
+    Category,
+    Tags,
+    Description,
+    uploadTemplateFile,
+    } = req.body;
+    const CompatibleFileTypes = req.file? `/uploads/template/${req.file.filename}` : null ;
+    const TemplateNameExists = await TemplateModel.findOne({ TemplateName });
+    if (TemplateNameExists) {
+      return res.status(400).json({ message: "Template already exists" });
+    }
+    const template = new TemplateModel({
+      TemplateName,
+      Category,
+      Tags,
+      Description,
+      CompatibleFileTypes,
+      uploadTemplateFile,
+    });
+    user.template.push(template._id);
+    await template.save();
+    await user.save();
+    res.status(200).json({ message: "Template added successfully", template})
+  } catch(error){
+    res.status(500).json({ message: "Server error", error: error.message })
+  }
+};
+
+// update Templates
+const updateTemplate = async (req, res) => {
+  try {
+    const templateId = req.params.id;
+    const {
+      TemplateName,
+      Category,
+      Tags,
+      Description,
+      uploadTemplateFile,
+    } = req.body;
+    const CompatibleFileTypes = req.file? `/uploads/template/${req.file.filename}` : null ;
+    const template = await TemplateModel.findById(templateId);
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+    const updatedTemplate = await TemplateModel.findByIdAndUpdate(
+      templateId,
+      {
+        TemplateName,
+        Category,
+        Tags,
+        Description,
+        CompatibleFileTypes,
+        uploadTemplateFile,
+      },
+      { new: true }
+    );
+    res.status(200).json({ message: "Template updated successfully", template: updatedTemplate });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// delete Templates
+const deleteTemplate = async (req, res) => {
+  try {
+    const templateId = req.params.id;
+    const template = await TemplateModel.findById(templateId);
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+    const userId = template.user;
+    await TemplateModel.findByIdAndDelete(templateId);
+    const user = await UserDetailsModel.findById(userId);
+    if (user) {
+      user.template = user.template.filter(
+        (tId) => tId.toString() !== templateId.toString()
+      );
+      await user.save();
+    }
+    res.status(200).json({ message: "Template deleted successfully" });
+  } catch(error){
+    res.status(500).json({ message: "Server error", error: error.message })
+  }
+};
+
+// get Templates
+const getTemplates = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const usertemplates = await UserDetailsModel.findOne({email}).populate('template');
+    if (!usertemplates){
+      return res.status(404).json({ message: "Templates not found" });
+    }
+    res.status(200).json({ usertemplates });
+  } catch(error){
+    res.status(500).json({ message: "Server error", error: error.message })
+  }
+};
+
+// get Blogs
+const getBlog = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const userblogs = await UserDetailsModel.findOne({email}).populate('blog');
+    if (!userblogs){
+      return res.status(404).json({ message: "Blogs not found" });
+    }
+    res.status(200).json({ userblogs });
+  } catch(error){
+    res.status(500).json({ message: "Server error", error: error.message })
+  }
+};
+
+// get PersonalDetails
+// const getPersonalDetails = async (req, res) => {
+//   try {
+//     const email = req.params.email;
+//     const PersonalDetails = await UserDetailsModel.findOne({email}).populate('education experience skills certifications projects summary').populate('user').select('-password');
+//     if (!PersonalDetails) {
+//       return res.status(404).json({ message: "Personal details not found" });
+//     }
+//     res.status(200).json({ PersonalDetails });
+//     } catch (error) {
+//       res.status(500).json({ message: "Server error", error: error.message })
+//     }
+//   };
+
+
+module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addExperienceDetails, updateExperienceDetails, addSkills, updateSkills, addCertifications, updateCertifications, addProjects, updateProjects, addSummary, updateSummary , deletePersonalDetails, deleteEducationDetails, deleteExperienceDetails, deleteSkills, deleteCertifications, deleteProjects, deleteSummary, addBlog, updateBlog, deleteBlog, addTemplate, updateTemplate, deleteTemplate, getTemplates, getBlog};

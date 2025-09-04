@@ -20,6 +20,7 @@ const templateSchema = new mongoose.Schema({
     Description: { type: String, required: false },
     CompatibleFileTypes: { type: Object, required: true },
     uploadTemplateFile: { type: String, required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 });
 
 module.exports = mongoose.model("Template", templateSchema);

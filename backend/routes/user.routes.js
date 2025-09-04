@@ -27,6 +27,14 @@ const {
   deleteCertifications,
   deleteProjects,
   deleteSummary,
+  addBlog,
+  updateBlog,
+  deleteBlog,
+  getBlog,
+  addTemplate,
+  updateTemplate,
+  deleteTemplate,
+  getTemplates,
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -85,5 +93,22 @@ router.post("/summary/:email", addSummary);
 router.put("/update-summary/:id", updateSummary);
 
 router.delete("/delete-summary/:id", deleteSummary);
+
+router.post("/blog/:email", upload.array("images"), addBlog);
+
+router.put("/update-blog/:id", upload.array("images"), updateBlog);
+
+router.delete("/delete-blog/:id", deleteBlog);
+
+router.get("/get-blog/:email", getBlog);
+
+router.post("/template/:email",upload.single("template") ,addTemplate);
+
+router.put("/update-template/:id",upload.single("template") ,updateTemplate);
+
+router.delete("/delete-template/:id", deleteTemplate);
+
+router.get("/get-templates/:email", getTemplates);
+
 
 module.exports = router;
