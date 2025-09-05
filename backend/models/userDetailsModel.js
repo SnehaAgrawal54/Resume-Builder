@@ -54,18 +54,6 @@ const userDetailsSchema = new mongoose.Schema({
       ref: "Certification",
     },
   ],
-  blog: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Blog",
-    },
-  ],
-  template: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Template",
-    },
-  ],
 });
 
 module.exports = mongoose.model("UserDetails", userDetailsSchema);

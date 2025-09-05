@@ -18,8 +18,8 @@ const templateSchema = new mongoose.Schema({
     Category: { type: String, required: true },
     Tags: { type: String, required: true },
     Description: { type: String, required: false },
-    CompatibleFileTypes: { type: Object, required: true },
-    uploadTemplateFile: { type: String, required: true },
+    CompatibleFileTypes: { type: Object, required: false },
+    uploadTemplateFile: { type: Object, required: false },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 });
 

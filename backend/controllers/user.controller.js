@@ -837,7 +837,7 @@ const deleteSummary = async (req, res) => {
 const addBlog = async (req, res) => {
   try {
     const email = req.params.email;
-    const user = await UserDetailsModel.findOne({email});
+    const user = await UserModel.findOne({email});
     if (!user){
       return res.status(404).json({ message: "User not found" });
     }
@@ -899,7 +899,7 @@ const deleteBlog = async (req, res) => {
     }
     const userId = blog.user;
     await BlogModel.findByIdAndDelete(blogId);
-    const user = await UserDetailsModel.findById(userId);
+    const user = await UserModel.findById(userId);
     if (user) {
       user.blog = user.blog.filter(
         (bId) => bId.toString() !== blogId.toString()
@@ -916,7 +916,7 @@ const deleteBlog = async (req, res) => {
 const addTemplate = async (req, res) => {
   try {
     const email = req.params.email;
-    const user = await UserDetailsModel.findOne({email});
+    const user = await UserModel.findOne({email});
     if (!user){
       return res.status(404).json({ message: "User not found" });
     }
@@ -932,6 +932,7 @@ const addTemplate = async (req, res) => {
     if (TemplateNameExists) {
       return res.status(400).json({ message: "Template already exists" });
     }
+    const userId = user._id;
     const template = new TemplateModel({
       TemplateName,
       Category,
@@ -939,6 +940,7 @@ const addTemplate = async (req, res) => {
       Description,
       CompatibleFileTypes,
       uploadTemplateFile,
+      user: userId,
     });
     user.template.push(template._id);
     await template.save();
@@ -993,7 +995,7 @@ const deleteTemplate = async (req, res) => {
     }
     const userId = template.user;
     await TemplateModel.findByIdAndDelete(templateId);
-    const user = await UserDetailsModel.findById(userId);
+    const user = await UserModel.findById(userId);
     if (user) {
       user.template = user.template.filter(
         (tId) => tId.toString() !== templateId.toString()
@@ -1010,7 +1012,7 @@ const deleteTemplate = async (req, res) => {
 const getTemplates = async (req, res) => {
   try {
     const email = req.params.email;
-    const usertemplates = await UserDetailsModel.findOne({email}).populate('template');
+    const usertemplates = await UserModel.findOne({email}).populate('template');
     if (!usertemplates){
       return res.status(404).json({ message: "Templates not found" });
     }
@@ -1024,12 +1026,26 @@ const getTemplates = async (req, res) => {
 const getBlog = async (req, res) => {
   try {
     const email = req.params.email;
-    const userblogs = await UserDetailsModel.findOne({email}).populate('blog');
+    const userblogs = await UserModel.findOne({email}).populate('blog');
     if (!userblogs){
       return res.status(404).json({ message: "Blogs not found" });
     }
     res.status(200).json({ userblogs });
   } catch(error){
+    res.status(500).json({ message: "Server error", error: error.message })
+  }
+};
+
+// get Admin user details
+const getAdminUserDetails = async (req, res) =>{
+  try {
+    const email = req.params.email;
+    const adminUserDetails = await UserModel.findOne({email}).populate('blog template').select('-password');
+    if (!adminUserDetails) {
+      return res.status(404).json({ message: "User details not found" });
+    }
+    res.status(200).json({ adminUserDetails });
+  }catch(error){
     res.status(500).json({ message: "Server error", error: error.message })
   }
 };
@@ -1049,4 +1065,41 @@ const getBlog = async (req, res) => {
 //   };
 
 
-module.exports = { signup, login, otpGenerator, verifyOtp, getUserDetails, addPersonalDetails, updatePersonalDetails, addEducationDetails, updateEducationDetails, contactUs, addExperienceDetails, updateExperienceDetails, addSkills, updateSkills, addCertifications, updateCertifications, addProjects, updateProjects, addSummary, updateSummary , deletePersonalDetails, deleteEducationDetails, deleteExperienceDetails, deleteSkills, deleteCertifications, deleteProjects, deleteSummary, addBlog, updateBlog, deleteBlog, addTemplate, updateTemplate, deleteTemplate, getTemplates, getBlog};
+module.exports = {
+  signup,
+  login,
+  otpGenerator,
+  verifyOtp,
+  getUserDetails,
+  addPersonalDetails,
+  updatePersonalDetails,
+  addEducationDetails,
+  updateEducationDetails,
+  contactUs,
+  addExperienceDetails,
+  updateExperienceDetails,
+  addSkills,
+  updateSkills,
+  addCertifications,
+  updateCertifications,
+  addProjects,
+  updateProjects,
+  addSummary,
+  updateSummary,
+  deletePersonalDetails,
+  deleteEducationDetails,
+  deleteExperienceDetails,
+  deleteSkills,
+  deleteCertifications,
+  deleteProjects,
+  deleteSummary,
+  addBlog,
+  updateBlog,
+  deleteBlog,
+  addTemplate,
+  updateTemplate,
+  deleteTemplate,
+  getTemplates,
+  getBlog,
+  getAdminUserDetails,
+};

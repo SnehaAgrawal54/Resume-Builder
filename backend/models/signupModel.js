@@ -11,7 +11,12 @@ mongoose
   });
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, minlength:[3, "minimum 3 characters required"], maxlength: 30 },
+  username: {
+    type: String,
+    required: true,
+    minlength: [3, "minimum 3 characters required"],
+    maxlength: 30,
+  },
   email: {
     type: String,
     required: [true, "Email is required"],
@@ -27,11 +32,24 @@ const userSchema = new mongoose.Schema({
       "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
     ],
   },
-  userDetails:[ 
+  userDetails: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "UserDetails",
-    }],
+    },
+  ],
+  blog: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Blog",
+    },
+  ],
+  template: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Template",
+    },
+  ],
 });
 
 module.exports = mongoose.model("User", userSchema);

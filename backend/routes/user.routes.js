@@ -35,6 +35,7 @@ const {
   updateTemplate,
   deleteTemplate,
   getTemplates,
+  getAdminUserDetails,
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -47,6 +48,8 @@ router.post("/login", login);
 router.post("/generate-otp", otpGenerator);
 
 router.post("/verify-otp", verifyOtp);
+
+router.get("/get-AdminUser-details/:email", getAdminUserDetails);
 
 router.get("/get-personal-details/:email", getUserDetails);
 
