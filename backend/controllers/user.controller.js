@@ -14,9 +14,6 @@ const ProjectModel = require("../models/projects");
 const SummaryModel = require("../models/summary");
 const BlogModel = require("../models/Blog");
 const TemplateModel = require("../models/template");
-const multer = require("multer");
-const path = require("path");
-
 
 
 // OTP generation and email sending
