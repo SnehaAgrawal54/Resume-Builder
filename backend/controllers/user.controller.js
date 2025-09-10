@@ -338,7 +338,7 @@ const updateEducationDetails = async (req, res) => {
   try{
     const educationId = req.params.id;
     const { institutionName, degree, fieldOfStudy, startDate, endDate, location, grade, acheavements, discription } = req.body;
-    console.log("Education ID:", educationId);
+    // console.log("Education ID:", educationId);
     const education = await EducationModel.findById(educationId);
     if (!education) {
       return res.status(404).json({ message: "Education details not found" });
@@ -1046,21 +1046,6 @@ const getAdminUserDetails = async (req, res) =>{
     res.status(500).json({ message: "Server error", error: error.message })
   }
 };
-
-// get PersonalDetails
-// const getPersonalDetails = async (req, res) => {
-//   try {
-//     const email = req.params.email;
-//     const PersonalDetails = await UserDetailsModel.findOne({email}).populate('education experience skills certifications projects summary').populate('user').select('-password');
-//     if (!PersonalDetails) {
-//       return res.status(404).json({ message: "Personal details not found" });
-//     }
-//     res.status(200).json({ PersonalDetails });
-//     } catch (error) {
-//       res.status(500).json({ message: "Server error", error: error.message })
-//     }
-//   };
-
 
 module.exports = {
   signup,
