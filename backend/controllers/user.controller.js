@@ -60,52 +60,63 @@ const otpGenerator = async (req, res) => {
 
 // verify OTP
 const verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
   try {
+    const { email, otp } = req.body;
     const otpEntry = await dbConfigModel.findOne({ email });
-    if (otpEntry.expiresAt < new Date()) {
-      await dbConfigModel.deleteOne({ email });
-      return res.status(400).json({ message: "OTP expired" });
-    }
+
     if (!otpEntry) {
-      return res.status(400).json({ message: "OTP expired. Please request a new one."});
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
     }
-    const isOtpValid = await bcrypt.compare(otp.toString(), otpEntry.otp);
-    if (!isOtpValid) {
+
+    if (otpEntry.expiresAt < Date.now()) {
+      await dbConfigModel.deleteOne({ email });
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+    }
+
+    const isMatch = await bcrypt.compare(otp.toString(), otpEntry.otp);
+    if (!isMatch) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
-    await dbConfigModel
-      .findOneAndDelete({ email })
-      .catch((err) => console.log("Error deleting OTP entry: ", err));
-    return res.status(200).json({ message: "OTP verified successfully" });
+    await dbConfigModel.deleteOne({ email });
+    res.status(200).json({ message: "OTP verified successfully" });
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
-}
+};
 
 // Signup controller
 const signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
+    const ProfilePicture = req.file
+      ? `/uploads/profilePictures/${req.file.filename}`
+      : null;
+
     // Check if user already exists
     const existingUser = await UserModel.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
+
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    // Create new user
+
     const newUser = new UserModel({
       username,
       email,
       password: hashedPassword,
+      profilePicture: ProfilePicture,
     });
+
     await newUser.save();
+
     const userResponse = {
       id: newUser._id,
       username: newUser.username,
       email: newUser.email,
+      profilePicture: newUser.profilePicture,
       userDetails: newUser.userDetails,
     };
+
     res
       .status(201)
       .json({ message: "User registered successfully", user: userResponse });
@@ -165,37 +176,23 @@ const getUserDetails = async (req, res) => {
 // post some details of user in personal details
 const addPersonalDetails = async (req, res) => {
   try {
-    const email = req.params.email; // Assuming user ID is available in req.user after authentication middleware
-    const { firstName, lastName, phoneNo, country, stateOrUnionTerritory, city, distinct, languagesKnown, hobies, linkedIn, github, website, jobTitle } = req.body;
-    const resume =req.file? `/uploads/resume/${req.file.filename}` : null ; // Placeholder path, in real scenario handle file upload
-    const user = await UserModel.findOne({email});
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    const newDetails = new UserDetailsModel({
-      resume,
-      firstName,
-      lastName,
-      email,
-      phoneNo,
-      country,
-      stateOrUnionTerritory,
-      city,
-      distinct,
-      languagesKnown,
-      hobies,
-      linkedIn,
-      github,
-      website,
-      jobTitle,
-      user: user._id,
+    const { userId } = req.body;
+
+    // ✅ Handle multiple resume files
+    const resumes = req.files?.map(file => `/uploads/resumes/${file.filename}`) || [];
+
+    const userDetails = new UserDetailsModel({
+      ...req.body,
+      resume: resumes, // array of resumes
+      user: userId,
     });
-    user.userDetails.push(newDetails._id);
-    await newDetails.save();
+
+    user.userDetails.push(userDetails._id);
+    await userDetails.save();
     await user.save();
-    res.status(200).json({ message: "User details added successfully", newDetails });
+    res.status(201).json(userDetails);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Error adding personal details", error });
   }
 };
 
@@ -270,7 +267,7 @@ const deletePersonalDetails = async (req, res) => {
     if (!userDetailsId) {
       return res.status(404).json({ message: "User details not found" });
     }
-    const userDetails = UserDetailsModel.findById(userDetailsId);
+    const userDetails = await UserDetailsModel.findById(userDetailsId);
     if (!userDetails) {
       return res.status(404).json({ message: "User details not found" });
     }
@@ -421,33 +418,28 @@ const contactUs = async (req, res) => {
 // eperience, skills, summary controllers to be added similarly
 const addExperienceDetails = async (req, res) => {
   try {
-    const {companyLocation, jobTitle, companyName, employeeType, location, startDate, endDate, workSamples, discription, keyAchievements} = req.body;
-    const email = req.params.email;
-    const certificates = req.file? `/uploads/certificate/${req.file.filename}` : null ;
-    const user = await UserDetailsModel.findOne({email});
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-      }
+    const { userId } = req.body;
+
+    // ✅ Handle multiple certificates
+    const certificates =
+      req.files?.map((file) => `/uploads/certificates/${file.filename}`) || [];
+
     const experience = new ExperienceModel({
-      jobTitle,
-      companyName,
-      employeeType,
-      location,
-      startDate,
-      endDate,
-      workSamples,
-      discription,
-      companyLocation,
-      keyAchievements,
-      certificates,
-      user: user._id,
+      ...req.body,
+      certificates, // array of certificate file paths
+      user: userId,
     });
-    user.experience.push(experience._id);
+
     await experience.save();
-    await user.save();
-    res.status(200).json({ message: "Experience details added successfully", experience });
+
+    // link experience to UserDetails
+    await UserDetailsModel.findByIdAndUpdate(userId, {
+      $push: { experience: experience._id },
+    });
+
+    res.status(201).json(experience);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Error adding experience details", error });
   }
 };
 
@@ -834,12 +826,18 @@ const deleteSummary = async (req, res) => {
 const addBlog = async (req, res) => {
   try {
     const email = req.params.email;
-    const user = await UserModel.findOne({email});
-    if (!user){
+    const user = await UserModel.findOne({ email });
+    if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
     const { Title, Keywords, Slug, Description, Content } = req.body;
-    const images = req.file? `/uploads/blog/${req.file.filename}` : null ;
+
+    // ✅ Always return array
+    const images = req.files
+      ? req.files.map((file) => `/uploads/blog/${file.filename}`)
+      : [];
+
     const blog = new BlogModel({
       Title,
       Keywords,
@@ -849,9 +847,11 @@ const addBlog = async (req, res) => {
       images,
       user: user._id,
     });
+
     user.blog.push(blog._id);
     await blog.save();
     await user.save();
+
     res.status(200).json({ message: "Blog added successfully", blog });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -912,39 +912,23 @@ const deleteBlog = async (req, res) => {
 // add Templates
 const addTemplate = async (req, res) => {
   try {
-    const email = req.params.email;
-    const user = await UserModel.findOne({email});
-    if (!user){
-      return res.status(404).json({ message: "User not found" });
-    }
-    const { 
-    TemplateName,
-    Category,
-    Tags,
-    Description,
-    uploadTemplateFile,
-    } = req.body;
-    const CompatibleFileTypes = req.file? `/uploads/template/${req.file.filename}` : null ;
-    const TemplateNameExists = await TemplateModel.findOne({ TemplateName });
-    if (TemplateNameExists) {
-      return res.status(400).json({ message: "Template already exists" });
-    }
-    const userId = user._id;
+    const { userId } = req.body;
+
+    // ✅ Handle multiple template files
+    const uploadedFiles =
+      req.files?.map((file) => `/uploads/templates/${file.filename}`) || [];
+
     const template = new TemplateModel({
-      TemplateName,
-      Category,
-      Tags,
-      Description,
-      CompatibleFileTypes,
-      uploadTemplateFile,
+      ...req.body,
+      uploadTemplateFile: uploadedFiles, // array of files
       user: userId,
     });
     user.template.push(template._id);
     await template.save();
     await user.save();
-    res.status(200).json({ message: "Template added successfully", template})
-  } catch(error){
-    res.status(500).json({ message: "Server error", error: error.message })
+    res.status(201).json(template);
+  } catch (error) {
+    res.status(500).json({ message: "Error adding template", error });
   }
 };
 

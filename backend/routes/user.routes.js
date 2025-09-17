@@ -41,7 +41,7 @@ const {
 const router = express.Router();
 const upload = require("../uploadedFiles");
 
-router.post("/signup", signup);
+router.post("/signup", upload.single("ProfilePicture"), signup);
 
 router.post("/login", login);
 
@@ -53,9 +53,9 @@ router.get("/get-AdminUser-details/:email", getAdminUserDetails);
 
 router.get("/get-personal-details/:email", getUserDetails);
 
-router.post("/personal-details/:email", upload.single("resume"), addPersonalDetails);
+router.post("/personal-details/:email", upload.array("resume", 5), addPersonalDetails);
 
-router.put("/update-personal-details/:email", upload.single("resume"), updatePersonalDetails);
+router.put("/update-personal-details/:email", upload.array("resume", 5), updatePersonalDetails);
 
 router.delete("/delete-personal-details/:email", deletePersonalDetails);
 
@@ -67,9 +67,9 @@ router.delete("/delete-education-details/:id", deleteEducationDetails);
 
 router.post("/contact-us", contactUs);
 
-router.post("/experience-details/:email", upload.single("certificate"), addExperienceDetails);
+router.post("/experience-details/:email", upload.array("certificates", 5), addExperienceDetails);
 
-router.put("/update-experience-details/:id", upload.single("certificate"), updateExperienceDetails);
+router.put("/update-experience-details/:id", upload.array("certificates", 5), updateExperienceDetails);
 
 router.delete("/delete-experience-details/:id", deleteExperienceDetails);
 
@@ -97,17 +97,17 @@ router.put("/update-summary/:id", updateSummary);
 
 router.delete("/delete-summary/:id", deleteSummary);
 
-router.post("/blog/:email", upload.array("images"), addBlog);
+router.post("/blog/:email", upload.array("images", 10), addBlog);
 
-router.put("/update-blog/:id", upload.array("images"), updateBlog);
+router.put("/update-blog/:id", upload.array("images", 10), updateBlog);
 
 router.delete("/delete-blog/:id", deleteBlog);
 
 router.get("/get-blog/:email", getBlog);
 
-router.post("/template/:email",upload.single("template") ,addTemplate);
+router.post("/template/:email", upload.array("uploadTemplateFile", 5),addTemplate);
 
-router.put("/update-template/:id",upload.single("template") ,updateTemplate);
+router.put("/update-template/:id", upload.array("uploadTemplateFile", 5),updateTemplate);
 
 router.delete("/delete-template/:id", deleteTemplate);
 

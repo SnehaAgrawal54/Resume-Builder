@@ -50,6 +50,11 @@ const userSchema = new mongoose.Schema({
       ref: "Template",
     },
   ],
+  ProfilePicture: {
+    type: String,
+    default: null,
+    require: false,
+  }
 });
 
 module.exports = mongoose.model("User", userSchema);

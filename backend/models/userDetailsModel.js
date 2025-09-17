@@ -1,8 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 
+// UserDetails.js
 const userDetailsSchema = new mongoose.Schema({
-  resume: { type: Object, required: false },
+  resume: [{ type: String }], // ✅ multiple resumes
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -18,42 +19,13 @@ const userDetailsSchema = new mongoose.Schema({
   languagesKnown: { type: String, required: false },
   hobies: { type: String, required: false },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  summary: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Summary",
-    },
-  ],
-  education: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Education",
-    },
-  ],
-  experience: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Experience",
-    },
-  ],
-  projects: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Project",
-    },
-  ],
-  skills: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Skill",
-    },
-  ],
-  certifications: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Certification",
-    },
-  ],
+  summary: [{ type: mongoose.Schema.Types.ObjectId, ref: "Summary" }],
+  education: [{ type: mongoose.Schema.Types.ObjectId, ref: "Education" }],
+  experience: [{ type: mongoose.Schema.Types.ObjectId, ref: "Experience" }],
+  projects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
+  skills: [{ type: mongoose.Schema.Types.ObjectId, ref: "Skill" }],
+  certifications: [{ type: mongoose.Schema.Types.ObjectId, ref: "Certification" }],
 });
+
 
 module.exports = mongoose.model("UserDetails", userDetailsSchema);

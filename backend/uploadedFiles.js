@@ -2,17 +2,35 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-const uploadPath = path.join(__dirname, "uploads"); // Make sure it's not root /upload
+// map of field names to subfolders
+const folderMap = {
+  ProfilePicture: "profilePictures",
+  resume: "resumes",
+  certificate: "certificates",
+  images: "blogs",
+  template: "templates",
+};
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath);
+    // default fallback
+    let folder = "others";
+
+    if (folderMap[file.fieldname]) {
+      folder = folderMap[file.fieldname];
     }
+
+    const uploadPath = path.join(__dirname, "uploads", folder);
+
+    // create folder if not exists
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(
       null,
       file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
@@ -20,6 +38,6 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
 module.exports = upload;
