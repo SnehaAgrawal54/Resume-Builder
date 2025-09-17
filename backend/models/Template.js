@@ -13,14 +13,16 @@ require('dotenv').config();
 // });
 
 
+// Template.js
 const templateSchema = new mongoose.Schema({
-    TemplateName: { type: String, required: true },
-    Category: { type: String, required: true },
-    Tags: { type: String, required: true },
-    Description: { type: String, required: false },
-    CompatibleFileTypes: { type: Object, required: false },
-    uploadTemplateFile: { type: Object, required: false },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  TemplateName: { type: String, required: true },
+  Category: { type: String, required: true },
+  Tags: { type: String, required: true },
+  Description: { type: String, required: false },
+  CompatibleFileTypes: [{ type: String }], // ✅ multiple
+  uploadTemplateFile: [{ type: String }],  // ✅ multiple
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 });
+
 
 module.exports = mongoose.model("Template", templateSchema);
